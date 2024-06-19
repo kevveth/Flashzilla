@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct Card {
+struct Card: Codable {
     var prompt: String
     var answer: String
     
@@ -15,13 +15,14 @@ struct Card {
 }
 
 struct ContentView: View {
-    @State private var cards = Array<Card>(repeating: .example, count: 10)
+    @State private var cards = [Card]()
     @Environment(\.accessibilityDifferentiateWithoutColor) var accessibilityDifferentiateWithoutColor
-    @State private var timeRemaining = 10
+    @State private var timeRemaining = 100
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     @Environment(\.scenePhase) var scenePhase
     @State private var isActive = true
     @Environment(\.accessibilityVoiceOverEnabled) var accessibilityVoiceOverEnabled
+    @State private var showingEditScreen = false
     
     var body: some View {
         ZStack {
@@ -60,6 +61,26 @@ struct ContentView: View {
                         .clipShape(.capsule)
                 }
             }
+            
+            VStack {
+                HStack {
+                    Spacer()
+                    
+                    Button {
+                        showingEditScreen = true
+                    } label: {
+                        Image(systemName: "plus.circle")
+                            .padding()
+                            .background(.black.opacity(0.7))
+                            .clipShape(.circle)
+                    }
+                }
+                
+                Spacer()
+            }
+            .foregroundStyle(.white)
+            .font(.largeTitle)
+            .padding()
             
             if accessibilityDifferentiateWithoutColor || accessibilityVoiceOverEnabled {
                 VStack {
@@ -116,6 +137,8 @@ struct ContentView: View {
                 isActive = false
             }
         }
+        .sheet(isPresented: $showingEditScreen, onDismiss: resetCards, content: EditCards.init)
+        .onAppear(perform: resetCards)
     }
     
     func removeCard(at index: Int) {
@@ -128,10 +151,18 @@ struct ContentView: View {
         }
     }
     
+    func loadData() {
+        if let data = UserDefaults.standard.data(forKey: "Cards") {
+            if let decoded = try? JSONDecoder().decode([Card].self, from: data) {
+                cards = decoded
+            }
+        }
+    }
+    
     func resetCards() {
-        cards = Array<Card>(repeating: .example, count: 10)
         timeRemaining = 100
         isActive = true
+        loadData()
     }
 }
 

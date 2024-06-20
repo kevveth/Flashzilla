@@ -9,7 +9,7 @@ import SwiftUI
 
 struct DraggableModifier: ViewModifier {
     @Binding var offset: CGSize
-    var removal: (() -> Void)?
+    var removal: ((Bool) -> Void)?
 
     func body(content: Content) -> some View {
         content
@@ -22,7 +22,7 @@ struct DraggableModifier: ViewModifier {
                     }
                     .onEnded { _ in
                         if abs(offset.width) > 100 {
-                            removal?()
+                            offset.width > 0 ? removal?(true) : removal?(false)
                         } else {
                             offset = .zero
                         }
@@ -32,7 +32,7 @@ struct DraggableModifier: ViewModifier {
 }
 
 extension View {
-    func draggable(offset: Binding<CGSize>, removal: (() -> Void)? = nil) -> some View {
+    func draggable(offset: Binding<CGSize>, removal: ((Bool) -> Void)? = nil) -> some View {
         self.modifier(DraggableModifier(offset: offset, removal: removal))
     }
 }

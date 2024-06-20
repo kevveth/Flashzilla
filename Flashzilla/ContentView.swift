@@ -7,7 +7,8 @@
 
 import SwiftUI
 
-struct Card: Codable {
+struct Card: Codable, Identifiable, Equatable {
+    var id = UUID()
     var prompt: String
     var answer: String
     
@@ -40,15 +41,15 @@ struct ContentView: View {
                     .clipShape(.capsule)
                 
                 ZStack {
-                    ForEach(0..<cards.count, id: \.self) { index in
-                        CardView(card: cards[index]) {
+                    ForEach(cards) { card in
+                        CardView(card: card) { isCorrect in
                             withAnimation {
-                                removeCard(at: index)
+                                removeCard(card: card, isCorrect: isCorrect)
                             }
                         }
-                        .stacked(at: index, in: cards.count)
-                        .allowsHitTesting(index == cards.count - 1)
-                        .accessibilityHidden(index < cards.count - 1)
+                        .stacked(at: cards.firstIndex(where: {$0.id == card.id}) ?? 0, in: cards.count)
+                        .allowsHitTesting(card == cards.last)
+                        .accessibilityHidden(card != cards.last)
                     }
                 }
                 .allowsHitTesting(timeRemaining > 0)
@@ -145,6 +146,22 @@ struct ContentView: View {
         guard index >= 0 else { return }
         
         cards.remove(at: index)
+        
+        if cards.isEmpty {
+            isActive = false
+        }
+    }
+    
+    func removeCard(card: Card?, isCorrect: Bool) {
+        guard let card = card else { return }
+        
+        if isCorrect {
+            cards.removeAll { $0.id == card.id }
+        } else {
+            let retryCard = Card(prompt: card.prompt, answer: card.answer)
+            cards.removeAll { $0.id == card.id }
+            cards.insert(retryCard, at: 0)
+        }
         
         if cards.isEmpty {
             isActive = false
